@@ -1,8 +1,14 @@
 use logos::{Lexer, Logos};
+use snailquote::unescape;
 
 fn lex_string(lex: &mut Lexer<Token>) -> String {
-    let s = lex.slice();
-    s[1..s.len() - 1].into()
+    match unescape(lex.slice()) {
+        Ok(result) => result,
+        Err(err) => {
+            // todo - hand off to delegated error handler
+            panic!("{:?}", err)
+        }
+    }
 }
 
 #[derive(Logos, Debug)]
