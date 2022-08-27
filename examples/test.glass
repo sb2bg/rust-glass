@@ -1,0 +1,45 @@
+square = func(x) => {
+    return x * x + [x * x];
+}
+
+square(2);
+
+offset_by_seven_point_two = func(x) => {
+    return x + 7.2;
+}
+
+test = offset_by_seven_point_two(2);
+println("2 + 7.2 = " + test == 9.2);
+
+create_range = func(start, end) => {
+    return start..end;
+}
+
+create_range_inclusive = func(start = 6, end) => {
+    return start..=end;
+}
+
+println(create_range(1, 10));
+print(create_range(1, 10));
+println(" <- range");
+println(create_range_inclusive(1, 10));
+print(create_range_inclusive(10)); // debating if this should be allowed
+print(create_range_inclusive(end = 10));
+
+println(#"this should print 20"); // # is the length operator
+
+println("escape characters such as...");
+println("el oh el \t");
+
+println([1, 2, 3] + [11, 12]); // prints [1, 2, 3, 11, 12]
+println([1, 2, 3] * 2); // prints [1, 2, 3, 1, 2, 3]
+println([1, 2, 3] + [[11, 12]]); // prints [1, 2, 3, [11, 12]]
+println([1, 2, 3] + 5); // prints [1, 2, 3, 5]
+println("test " * 3); // prints "test test test "
+
+range = 0xFF..0xFFFF; // range from 255 to 65535
+range2 = 0xABCD..; // range from 43981 to infinity
+
+0b1010;
+0xDEADBEEF;
+0o755;
