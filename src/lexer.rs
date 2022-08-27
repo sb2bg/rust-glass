@@ -1,29 +1,28 @@
 use logos::{Lexer, Logos};
 use snailquote::unescape;
 
-fn lex_string(lex: &mut Lexer<Token>) -> String {
-    match unescape(lex.slice()) {
-        Ok(result) => result,
-        Err(err) => {
-            // todo - hand off to delegated error handler
-            panic!("{:?}", err)
-        }
-    }
+fn lex_string(lex: &mut Lexer<Token>) -> Option<String> {
+    unescape(lex.slice()).ok()
+}
+
+fn lex_number_with_base(lex: &mut Lexer<Token>, radix: u32) -> Option<f64> {
+    i64::from_str_radix(&lex.slice()[2..], radix)
+        .ok()
+        .map(|x| x as f64)
 }
 
 #[derive(Logos, Debug)]
 pub enum Token {
-    //regex to match a number (integers and floats)
-    #[regex(r"\d+(\.\d+)?", |lexer| lexer.slice().parse::<f64>().unwrap())]
-    // regex to match byte numbers (integers and floats)
+    #[regex(r"\d+(\.\d+)?", |lexer| lexer.slice().parse::<f64>())] // decimal
+    #[regex(r"0x[0-9A-Fa-f]+", |lexer| lex_number_with_base(lexer, 16))] // hexadecimal
+    #[regex(r"0o[0-7]+", |lexer| lex_number_with_base(lexer, 8))] // octal
+    #[regex(r"0b[01]+", |lexer| lex_number_with_base(lexer, 2))] // binary
     Number(f64),
 
-    // regex to match an identifier
-    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lexer| lexer.slice().to_string())]
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lexer| lexer.slice().to_string())] // identifier
     Identifier(String),
 
-    // regex to match a string
-    #[regex(r#""(\\.|[^"])*""#, lex_string)]
+    #[regex(r#""(\\.|[^"])*""#, lex_string)] // string
     String(String),
 
     #[token("+")]
@@ -46,6 +45,24 @@ pub enum Token {
 
     #[token("=")]
     Equal,
+
+    #[token("+=")]
+    PlusEqual,
+
+    #[token("-=")]
+    MinusEqual,
+
+    #[token("*=")]
+    StarEqual,
+
+    #[token("/=")]
+    SlashEqual,
+
+    #[token("%=")]
+    PercentEqual,
+
+    #[token("**=")]
+    StarStarEqual,
 
     #[token("==")]
     EqualEqual,
@@ -91,6 +108,18 @@ pub enum Token {
 
     #[token("return")]
     Return,
+
+    #[token("break")]
+    Break,
+
+    #[token("continue")]
+    Continue,
+
+    #[token("import")]
+    Import,
+
+    #[token("match")]
+    Match,
 
     #[token("print")]
     Print,
@@ -140,7 +169,13 @@ pub enum Token {
     #[token("..")]
     DotDot,
 
+    #[token("..=")]
+    DotDotEqual,
+
+    #[token("#")]
+    Hash,
+
     #[error]
-    #[regex(r"[ \t\n\r]+", logos::skip)]
+    #[regex(r"[ \t\n\r]+|//[^\n]*", logos::skip)] // skip whitespace and comments
     Error,
 }
