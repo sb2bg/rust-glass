@@ -1,14 +1,16 @@
 mod lexer;
+mod parser;
 
 use crate::lexer::Token;
-use clap::Parser;
-use log::debug;
+use crate::parser::Parser;
+use clap::Parser as ClapParser;
+use log::{debug, log_enabled, Level, LevelFilter};
 use logos::Logos;
 use simplelog::SimpleLogger;
 use std::panic;
 use std::path::PathBuf;
 
-#[derive(Parser, Debug)]
+#[derive(ClapParser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     #[clap(help = "The script file to run", index = 1)]
@@ -42,21 +44,32 @@ fn run_script(file: PathBuf) {
     let source = std::fs::read_to_string(&file).unwrap();
     debug!("Read {} bytes from '{}'", &source.len(), &file.display());
 
-    let mut lexer: logos::Lexer<Token> = Token::lexer(&source);
+    let lexer = Token::lexer(&source);
 
-    while let Some(token) = lexer.next() {
-        debug!("{:?}", token);
+    if log_enabled!(Level::Debug) {
+        let mut debug_lexer = Token::lexer(&source);
+
+        while let Some(token) = debug_lexer.next() {
+            debug!("{:?}", token);
+        }
     }
+
+    let mut parser = Parser::new(lexer);
+    let ast = parser.parse();
 }
 
 fn setup_logger(debug: bool) {
-    SimpleLogger::init(
-        if debug {
-            simplelog::LevelFilter::Debug
-        } else {
-            simplelog::LevelFilter::Info
-        },
-        simplelog::Config::default(),
-    )
-    .unwrap();
+    let level = if debug {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
+    match SimpleLogger::init(level, simplelog::Config::default()) {
+        Ok(_) => {}
+        Err(err) => {
+            // todo - hand off to delegated error handler
+            panic!("{:?}", err);
+        }
+    }
 }
