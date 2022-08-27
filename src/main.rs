@@ -1,3 +1,4 @@
+mod error;
 mod lexer;
 mod parser;
 
@@ -5,8 +6,9 @@ use crate::lexer::Token;
 use crate::parser::Parser;
 use clap::Parser as ClapParser;
 use log::{debug, log_enabled, Level, LevelFilter};
-use logos::Logos;
+use logos::{Logos, Span};
 use simplelog::SimpleLogger;
+use std::collections::VecDeque;
 use std::panic;
 use std::path::PathBuf;
 
@@ -44,17 +46,15 @@ fn run_script(file: PathBuf) {
     let source = std::fs::read_to_string(&file).unwrap();
     debug!("Read {} bytes from '{}'", &source.len(), &file.display());
 
-    let lexer = Token::lexer(&source);
+    let tokens: VecDeque<(Token, Span)> = Token::lexer(&source).spanned().collect();
 
     if log_enabled!(Level::Debug) {
-        let mut debug_lexer = Token::lexer(&source);
-
-        while let Some(token) = debug_lexer.next() {
-            debug!("{:?}", token);
+        for (token, span) in &tokens {
+            debug!("{:?} at {:?}", token, span);
         }
     }
 
-    let mut parser = Parser::new(lexer);
+    let mut parser = Parser::new(tokens);
     let ast = parser.parse();
 }
 

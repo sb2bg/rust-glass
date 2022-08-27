@@ -1,16 +1,24 @@
-use crate::Token;
-use logos::Lexer;
+use crate::lexer::Token;
+use std::collections::VecDeque;
 
-pub struct Parser<'a> {
-    lexer: Lexer<'a, Token>,
+use logos::Span;
+
+pub struct Parser {
+    tokens: VecDeque<(Token, Span)>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn new(lexer: Lexer<'a, Token>) -> Self {
-        Self { lexer }
+impl Parser {
+    pub fn new(tokens: VecDeque<(Token, Span)>) -> Self {
+        Self { tokens }
     }
 
-    pub fn parse(&mut self) -> () {
-        println!("FROM PARSER: {:?}", self.lexer.next());
+    pub fn parse(&mut self) -> Result<(), ()> {
+        println!("FROM PARSER: {:?}", self.next());
+
+        Ok(())
+    }
+
+    fn next(&mut self) -> Option<(Token, Span)> {
+        self.tokens.pop_front()
     }
 }
