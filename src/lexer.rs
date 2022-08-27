@@ -11,7 +11,7 @@ fn lex_number_with_base(lex: &mut Lexer<Token>, radix: u32) -> Option<f64> {
         .map(|x| x as f64)
 }
 
-#[derive(Logos, Debug)]
+#[derive(Logos, Debug, PartialEq)]
 pub enum Token {
     #[regex(r"\d+(\.\d+)?", |lexer| lexer.slice().parse::<f64>())] // decimal
     #[regex(r"0x[0-9A-Fa-f]+", |lexer| lex_number_with_base(lexer, 16))] // hexadecimal
@@ -168,6 +168,9 @@ pub enum Token {
 
     #[token("..")]
     DotDot,
+
+    #[token("...")]
+    DotDotDot,
 
     #[token("..=")]
     DotDotEqual,
