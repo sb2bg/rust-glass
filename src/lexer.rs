@@ -1,5 +1,5 @@
 use logos::{Lexer, Logos};
-use snailquote::unescape;
+use snailquote::{unescape, UnescapeError};
 
 fn lex_string(lex: &mut Lexer<Token>) -> Option<String> {
     unescape(lex.slice()).ok()
@@ -121,9 +121,6 @@ pub enum Token {
     #[token("match")]
     Match,
 
-    #[token("print")]
-    Print,
-
     #[token("true")]
     True,
 
@@ -166,19 +163,25 @@ pub enum Token {
     #[token(".")]
     Dot,
 
-    #[token("..")]
+    #[token("..")] // range
     DotDot,
 
-    #[token("...")]
+    #[token("...")] // spread operator
     DotDotDot,
 
-    #[token("..=")]
+    #[token("..=")] // inclusive range
     DotDotEqual,
 
     #[token("#")]
     Hash,
 
+    #[regex(r#""(\\.|[^"])*"#)] // unclosed string
+    UnclosedString,
+
+    #[regex(r#""(\\.|[^"])*\\[^"]*""#)] // invalid escape sequence
+    InvalidEscapeSequence,
+
     #[error]
-    #[regex(r"[ \t\n\r]+|//[^\n]*", logos::skip)] // skip whitespace and comments
+    #[regex(r"[ \t\n\r]+|//[^\n]*", logos::skip)] // skip whitespace and '//' comments
     Error,
 }
