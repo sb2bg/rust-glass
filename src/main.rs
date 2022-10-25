@@ -1,10 +1,13 @@
 mod error;
 mod lexer;
+mod node;
 mod parser;
 
+use crate::error::GlassError;
 use crate::lexer::Token;
 use crate::parser::Parser;
 use clap::Parser as ClapParser;
+use git_version::git_version;
 use log::{debug, log_enabled, Level, LevelFilter};
 use logos::{Logos, Span};
 use simplelog::SimpleLogger;
@@ -20,29 +23,45 @@ struct Args {
 
     #[clap(short = 'd', long = "debug", help = "Enable debug mode")]
     debug: bool,
+
+    #[clap(short = 'v', long = "verbose", help = "Enable verbose mode")]
+    verbose: bool,
 }
 
 fn main() {
-    panic::set_hook(Box::new(|e| {
-        // todo - prettify
-        eprintln!("{}", e);
-        std::process::exit(1);
+    panic::set_hook(Box::new(|err| {
+        eprintln!(
+            "{}",
+            GlassError::UncaughtPanic {
+                error_message: err.to_string(),
+                glass_version: env!("CARGO_PKG_VERSION").into(),
+                git_revision: git_version!(fallback = "<unknown>").into()
+            }
+        );
     }));
 
+    if let Err(err) = try_main() {
+        eprintln!("Fatal exception during execution -> {}", err);
+    }
+}
+
+fn try_main() -> Result<(), GlassError> {
     let args = Args::parse();
     setup_logger(args.debug);
 
     match args.file {
         Some(file) => {
-            run_script(file);
+            run_script(file)?;
         }
         None => {
             // todo - run REPL
         }
     }
+
+    Ok(())
 }
 
-fn run_script(file: PathBuf) {
+fn run_script(file: PathBuf) -> Result<(), GlassError> {
     let source = std::fs::read_to_string(&file).unwrap();
     debug!("Read {} bytes from '{}'", &source.len(), &file.display());
 
@@ -54,8 +73,11 @@ fn run_script(file: PathBuf) {
         }
     }
 
-    let mut parser = Parser::new(tokens);
-    let ast = parser.parse();
+    let mut parser = Parser::new(tokens, source);
+    let ast = parser.parse()?;
+    println!("{:?}", ast);
+
+    Ok(())
 }
 
 fn setup_logger(debug: bool) {
@@ -68,7 +90,7 @@ fn setup_logger(debug: bool) {
     match SimpleLogger::init(level, simplelog::Config::default()) {
         Ok(_) => {}
         Err(err) => {
-            // todo - hand off to delegated error handler
+            // todo - hand off to delegate error handler
             panic!("{:?}", err);
         }
     }
