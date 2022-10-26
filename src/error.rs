@@ -54,7 +54,10 @@ pub enum GlassError {
         src: String,
         span: Span,
     },
-    
+
     #[error("Unexpected end of input at {}", get_line(src, span))]
     UnexpectedEndOfInput { src: String, span: Span },
+
+    #[error("No parseable tokens found in source file '{}'", filename)]
+    EmptyTokenStream { src: String, filename: String },
 }
