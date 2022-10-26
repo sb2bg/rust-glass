@@ -19,12 +19,19 @@ create_range_inclusive = func(start = 6, end) => {
     return start..=end;
 }
 
+x_t = 3
+
+//xxxxx = "test \p lol"
+
+//test lol $ money
+
 println(create_range(1, 10));
 print(create_range(1, 10));
 println(" <- range");
 println(create_range_inclusive(1, 10));
 print(create_range_inclusive(10)); // debating if this should be allowed
 print(create_range_inclusive(end = 10));
+
 
 println(#"this should print 20"); // # is the length operator
 
@@ -40,6 +47,11 @@ println("test " * 3); // prints "test test test "
 range = 0xFF..0xFFFF; // range from 255 to 65535
 range2 = 0xABCD..; // range from 43981 to infinity
 
-0b1010;
-0xDEADBEEF;
-0o755;
+unclosed = "oops
+num10 = 0b1010;
+num3735928559 = 0xDEADBEEF;
+num493 = 0o755;
+
+xxx = 0b1010;
+
+tt
