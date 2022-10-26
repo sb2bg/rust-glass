@@ -42,6 +42,15 @@ fn main() {
 
     if let Err(err) = try_main() {
         eprintln!("Fatal exception during execution -> {}", err);
+        /*
+
+            Fatal exception during runtime -> "Unknown character '$' encountered at
+
+                el oh el $ lol
+                         ^
+            [test.glass(Ln:6 Col:10)]"
+
+        */
     }
 }
 
@@ -73,7 +82,7 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
         }
     }
 
-    let mut parser = Parser::new(tokens, source);
+    let mut parser = Parser::new(tokens, source, file.display().to_string());
     let ast = parser.parse()?;
     println!("{:?}", ast);
 
