@@ -1,4 +1,4 @@
-use crate::interpreter::Interpreter;
+use crate::interpreter::{Interpreter, InterpreterResult};
 use crate::value::Value;
 use crate::Token;
 
@@ -61,10 +61,10 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn visit(&self, interpreter: &Interpreter) -> Value {
+    pub fn visit(&self, interpreter: &Interpreter) -> InterpreterResult {
         match self {
-            Node::String { value } => Value::Str(value.clone()), // todo: don't clone
-            Node::Number { value } => Value::Num(*value),
+            Node::String { value } => Ok(Value::Str(value.clone())), // todo: don't clone
+            Node::Number { value } => Ok(Value::Num(*value)),
             Node::Identifier { .. } => todo!("identifier"),
             Node::BinaryOp { op, left, right } => interpreter.visit_bin_op_node(op, left, right),
             Node::Assignment { .. } => todo!("assignment"),
