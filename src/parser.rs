@@ -1,5 +1,6 @@
 use crate::lexer::Token;
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 use crate::error::GlassError;
 use crate::node::Node;
@@ -7,8 +8,8 @@ use logos::Span;
 
 pub struct Parser {
     tokens: VecDeque<(Token, Span)>,
-    source: String,
-    filename: String,
+    src: Rc<str>,
+    filename: Rc<str>,
 }
 
 type ParseResult = Result<Node, GlassError>;
@@ -23,10 +24,10 @@ macro_rules! token_matches {
 }
 
 impl Parser {
-    pub fn new(tokens: VecDeque<(Token, Span)>, source: String, filename: String) -> Self {
+    pub fn new(tokens: VecDeque<(Token, Span)>, src: Rc<str>, filename: Rc<str>) -> Self {
         Self {
             tokens,
-            source,
+            src,
             filename,
         }
     }
@@ -102,10 +103,15 @@ impl Parser {
 
     fn parse_factor(&mut self) -> ParseResult {
         self.parse_math_expression(
-            Box::new(Self::parse_unary),
+            Box::new(Self::parse_power),
             None,
             vec![Token::Star, Token::Slash, Token::Percent],
         )
+    }
+
+    // note: not 100% sure this is correct, but I think it is
+    fn parse_power(&mut self) -> ParseResult {
+        self.parse_math_expression(Box::new(Self::parse_unary), None, vec![Token::StarStar])
     }
 
     fn parse_unary(&mut self) -> ParseResult {
@@ -123,7 +129,7 @@ impl Parser {
         }
 
         Err(GlassError::UnexpectedEndOfInput {
-            filename: self.filename.clone(),
+            filename: Rc::clone(&self.filename),
         })
     }
 
@@ -141,7 +147,7 @@ impl Parser {
             }
             Some((token, _)) => todo!("unimplemented token {:?}", token),
             None => Err(GlassError::UnexpectedEndOfInput {
-                filename: self.filename.clone(),
+                filename: Rc::clone(&self.filename),
             }),
         }
     }
@@ -156,13 +162,13 @@ impl Parser {
                 Err(GlassError::UnexpectedToken {
                     expected: token,
                     actual: next_token,
-                    src: self.source.clone(), // todo: don't clone
+                    src: Rc::clone(&self.src),
                     span,
                 })
             }
         } else {
             Err(GlassError::UnexpectedEndOfInput {
-                filename: self.filename.clone(),
+                filename: Rc::clone(&self.filename),
             })
         }
     }
@@ -188,20 +194,20 @@ impl Parser {
         match token {
             Token::Error => {
                 return Err(GlassError::UnknownToken {
-                    src: self.source.clone(), // todo: don't clone
+                    src: Rc::clone(&self.src),
                     span,
                 });
             }
             Token::UnclosedString => {
                 return Err(GlassError::UnclosedString {
-                    src: self.source.clone(), // todo: don't clone
+                    src: Rc::clone(&self.src),
                     span,
                 });
             }
             Token::InvalidEscapeSequence => {
                 return Err(GlassError::UnknownEscapeSequence {
-                    escape_sequence: self.source[span.start..span.end].to_string(),
-                    src: self.source.clone(), // todo: don't clone
+                    escape_sequence: self.src[span.start..span.end].to_string(),
+                    src: Rc::clone(&self.src),
                     span,
                 });
             }
