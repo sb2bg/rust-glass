@@ -1,7 +1,8 @@
 use crate::Token;
+use git_version::git_version;
 use line_span::find_line_range;
 use logos::Span;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::rc::Rc;
 use thiserror::Error;
 
@@ -13,14 +14,12 @@ fn get_line<'a>(source: &'a str, span: &'a Span) -> &'a str {
     &source[find_line_range(source, span.start)].trim()
 }
 
+// todo: instead of passing source to each error, just get the span and pass that to the error handler in main?
+// I didn't think about if this is possible when I wrote this, but it might be ^
 #[derive(Error, Debug)]
 pub enum GlassError {
-    #[error("Unknown error '{error_message}'. Please report this bug with the following information: Glass Version = '{glass_version}', Git Revision = '{git_revision}'")]
-    UncaughtPanic {
-        error_message: String,
-        glass_version: String,
-        git_revision: String,
-    },
+    #[error("Unknown error '{error_message}'. Please report this bug with the following information: Glass Version = '{}', Git Revision = '{}'", env!("CARGO_PKG_VERSION"), git_version!(fallback = "<unknown>"))]
+    UncaughtPanic { error_message: String },
 
     #[error(
         "Unknown token '{}' encountered at {}",
@@ -59,6 +58,14 @@ pub enum GlassError {
     #[error("Unexpected end of input in source file '{}'", filename)]
     UnexpectedEndOfInput { filename: Rc<str> },
 
-    #[error("No parseable tokens found in source file '{}'", filename)]
-    EmptyTokenStream { filename: Rc<str> },
+    #[error("Cannot use operand '{}' on type '{}' and '{}'", operation, lhs, rhs)]
+    InvalidOperation {
+        operation: String,
+        lhs: String,
+        rhs: String,
+    },
+
+    // this error is to only be used in development as a placeholder for errors that haven't been implemented yet
+    #[error("{}", message)]
+    PlaceholderError { message: String },
 }
