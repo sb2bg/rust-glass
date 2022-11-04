@@ -3,8 +3,10 @@ mod interpreter;
 mod lexer;
 mod node;
 mod parser;
+mod value;
 
 use crate::error::GlassError;
+use crate::interpreter::Interpreter;
 use crate::lexer::Token;
 use crate::parser::Parser;
 use clap::Parser as ClapParser;
@@ -86,6 +88,10 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
     let mut parser = Parser::new(tokens, source, file.display().to_string());
     let ast = parser.parse()?;
     println!("{:?}", ast);
+
+    let interpreter = Interpreter::new();
+    let result = interpreter.visit_node(ast);
+    println!("{:?}", result);
 
     Ok(())
 }
