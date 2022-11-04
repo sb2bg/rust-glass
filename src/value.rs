@@ -1,8 +1,6 @@
 use crate::error::GlassError;
 use crate::interpreter::InterpreterResult;
-use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::ops::{Div, Mul, Neg, Not, Sub};
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
