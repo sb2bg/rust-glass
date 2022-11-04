@@ -1,7 +1,7 @@
 use crate::Token;
 use line_span::find_line_range;
-use logos::{Source, Span};
-use std::fmt::{Debug, Display, Formatter};
+use logos::Span;
+use std::fmt::{Debug, Display};
 use thiserror::Error;
 
 fn get_token<'a>(source: &'a String, span: &'a Span) -> &'a str {
@@ -55,8 +55,8 @@ pub enum GlassError {
         span: Span,
     },
 
-    #[error("Unexpected end of input at {}", get_line(src, span))]
-    UnexpectedEndOfInput { src: String, span: Span },
+    #[error("Unexpected end of input in source file '{}'", filename)]
+    UnexpectedEndOfInput { filename: String },
 
     #[error("No parseable tokens found in source file '{}'", filename)]
     EmptyTokenStream { src: String, filename: String },
