@@ -85,7 +85,7 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
         }
     }
 
-    let mut parser = Parser::new(tokens, source, file.display().to_string());
+    let mut parser = Parser::new(tokens, source.into(), file.display().to_string().into());
     let ast = parser.parse()?;
     println!("{:?}", ast);
 
