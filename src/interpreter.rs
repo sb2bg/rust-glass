@@ -39,8 +39,8 @@ impl Interpreter {
             Token::GreaterThanEqual => left.visit(self)?.ge(right.visit(self)?),
             Token::And => left.visit(self)?.and(right.visit(self)?),
             Token::Or => left.visit(self)?.or(right.visit(self)?),
-            _ => Err(GlassError::PlaceholderError {
-                message: "unimplemented bin op".to_string(),
+            _ => Err(GlassError::UnknownError {
+                error_message: "Parsed invalid binary operation expression".into(),
             }),
         }
     }
@@ -50,15 +50,15 @@ impl Interpreter {
             Token::Minus => right.visit(self)?.neg(),
             Token::Not => right.visit(self)?.not(),
             Token::Plus => right.visit(self),
-            _ => Err(GlassError::PlaceholderError {
-                message: "Invalid unary operator".to_string(),
+            _ => Err(GlassError::UnknownError {
+                error_message: "Parsed invalid unary expression".to_string(),
             }),
         }
     }
 
     pub fn visit_block_node(&self, statements: &Vec<Node>) -> InterpreterResult {
         for statement in statements {
-            statement.visit(self);
+            statement.visit(self)?;
         }
 
         Ok(Value::Void)
