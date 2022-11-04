@@ -15,27 +15,40 @@ impl Interpreter {
         node.visit(self)
     }
 
-    pub fn visit_number_node(&self, value: &f64) -> Value {
-        Value::Num(*value)
-    }
-
     pub fn visit_bin_op_node(&self, op: &Token, left: &Box<Node>, right: &Box<Node>) -> Value {
         match op {
             Token::Plus => left.visit(self) + right.visit(self),
-            // Token::Minus => println!("{}", left.visit(self) - right.visit(self)),
-            // Token::Star => println!("{}", left.visit(self) * right.visit(self)),
-            // Token::Slash => println!("{}", left.visit(self) / right.visit(self)),
+            Token::Minus => left.visit(self) - right.visit(self),
+            Token::Star => left.visit(self) * right.visit(self),
+            Token::Slash => left.visit(self) / right.visit(self),
             // Token::Percent => println!("{}", left.visit(self) % right.visit(self)),
-            // Token::StarStar => println!("{}", left.visit(self).powf(right.visit(self))),
-            // Token::EqualEqual => println!("{}", left.visit(self) == right.visit(self)),
-            // Token::ExclamationEqual => println!("{}", left.visit(self) != right.visit(self)),
-            // Token::LessThan => println!("{}", left.visit(self) < right.visit(self)),
-            // Token::GreaterThan => println!("{}", left.visit(self) > right.visit(self)),
-            // Token::LessThanEqual => println!("{}", left.visit(self) <= right.visit(self)),
-            // Token::GreaterThanEqual => println!("{}", left.visit(self) >= right.visit(self)),
+            Token::StarStar => left.visit(self).pow(right.visit(self)),
+            Token::EqualEqual => Value::Bool(left.visit(self) == right.visit(self)),
+            Token::ExclamationEqual => Value::Bool(left.visit(self) != right.visit(self)),
+            Token::LessThan => Value::Bool(left.visit(self) < right.visit(self)),
+            Token::GreaterThan => Value::Bool(left.visit(self) > right.visit(self)),
+            Token::LessThanEqual => Value::Bool(left.visit(self) <= right.visit(self)),
+            Token::GreaterThanEqual => Value::Bool(left.visit(self) >= right.visit(self)),
             // Token::And => println!("{}", left.visit(self) && right.visit(self)),
             // Token::Or => println!("{}", left.visit(self) || right.visit(self)),
             _ => todo!("Error: Invalid binary operator"),
         }
+    }
+
+    pub fn visit_unary_op_node(&self, op: &Token, right: &Box<Node>) -> Value {
+        match op {
+            Token::Minus => -right.visit(self),
+            Token::Not => !right.visit(self),
+            Token::Plus => right.visit(self),
+            _ => todo!("Error: Invalid unary operator"),
+        }
+    }
+
+    pub fn visit_block_node(&self, statements: &Vec<Node>) -> Value {
+        for statement in statements {
+            statement.visit(self);
+        }
+
+        Value::Void
     }
 }
