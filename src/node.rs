@@ -1,3 +1,5 @@
+use crate::interpreter::Interpreter;
+use crate::value::Value;
 use crate::Token;
 
 #[derive(Debug)]
@@ -56,4 +58,25 @@ pub enum Node {
     Block {
         statements: Vec<Node>,
     },
+}
+
+impl Node {
+    pub fn visit(&self, interpreter: &Interpreter) -> Value {
+        match self {
+            Node::String { .. } => todo!("string"),
+            Node::Number { value } => interpreter.visit_number_node(value),
+            Node::Identifier { .. } => todo!("identifier"),
+            Node::BinaryOp { op, left, right } => interpreter.visit_bin_op_node(op, left, right),
+
+            Node::Assignment { .. } => todo!("assignment"),
+            Node::UnaryOp { op, expr } => todo!("unary op"),
+            Node::FunctionCall { .. } => todo!("function call"),
+            Node::FunctionDefinition { .. } => todo!("function definition"),
+            Node::Return { .. } => todo!("return"),
+            Node::If { .. } => todo!("if"),
+            Node::While { .. } => todo!("while"),
+            Node::For { .. } => todo!("for"),
+            Node::Block { .. } => todo!("block"),
+        }
+    }
 }
