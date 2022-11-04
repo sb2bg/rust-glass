@@ -63,20 +63,19 @@ pub enum Node {
 impl Node {
     pub fn visit(&self, interpreter: &Interpreter) -> Value {
         match self {
-            Node::String { .. } => todo!("string"),
-            Node::Number { value } => interpreter.visit_number_node(value),
+            Node::String { value } => Value::Str(value.clone()), // todo: don't clone
+            Node::Number { value } => Value::Num(*value),
             Node::Identifier { .. } => todo!("identifier"),
             Node::BinaryOp { op, left, right } => interpreter.visit_bin_op_node(op, left, right),
-
             Node::Assignment { .. } => todo!("assignment"),
-            Node::UnaryOp { op, expr } => todo!("unary op"),
+            Node::UnaryOp { op, expr } => interpreter.visit_unary_op_node(op, expr),
             Node::FunctionCall { .. } => todo!("function call"),
             Node::FunctionDefinition { .. } => todo!("function definition"),
             Node::Return { .. } => todo!("return"),
             Node::If { .. } => todo!("if"),
             Node::While { .. } => todo!("while"),
             Node::For { .. } => todo!("for"),
-            Node::Block { .. } => todo!("block"),
+            Node::Block { statements } => interpreter.visit_block_node(statements),
         }
     }
 }
