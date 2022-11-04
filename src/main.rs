@@ -10,7 +10,6 @@ use crate::interpreter::Interpreter;
 use crate::lexer::Token;
 use crate::parser::Parser;
 use clap::Parser as ClapParser;
-use git_version::git_version;
 use log::{debug, log_enabled, Level, LevelFilter};
 use logos::{Logos, Span};
 use simplelog::SimpleLogger;
@@ -37,8 +36,6 @@ fn main() {
             "{}",
             GlassError::UncaughtPanic {
                 error_message: err.to_string(),
-                glass_version: env!("CARGO_PKG_VERSION").into(),
-                git_revision: git_version!(fallback = "<unknown>").into()
             }
         );
     }));
@@ -62,15 +59,11 @@ fn try_main() -> Result<(), GlassError> {
     setup_logger(args.debug);
 
     match args.file {
-        Some(file) => {
-            run_script(file)?;
-        }
-        None => {
-            // todo - run REPL
-        }
+        Some(file) => run_script(file),
+        None => Err(GlassError::PlaceholderError {
+            message: "REPL not implemented yet".into(),
+        }),
     }
-
-    Ok(())
 }
 
 fn run_script(file: PathBuf) -> Result<(), GlassError> {
@@ -87,16 +80,22 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
 
     let mut parser = Parser::new(tokens, source.into(), file.display().to_string().into());
     let ast = parser.parse()?;
-    println!("{:?}", ast);
+
+    if log_enabled!(Level::Debug) {
+        debug!("AST > {:#?}", ast);
+    }
 
     let interpreter = Interpreter::new();
-    let result = interpreter.visit_node(ast);
-    println!("{:?}", result);
+    let result = interpreter.visit_node(ast)?;
+
+    if log_enabled!(Level::Debug) {
+        debug!("Result > {:?}", result);
+    }
 
     Ok(())
 }
 
-fn setup_logger(debug: bool) {
+fn setup_logger(debug: bool) -> Result<(), GlassError> {
     let level = if debug {
         LevelFilter::Debug
     } else {
@@ -104,10 +103,9 @@ fn setup_logger(debug: bool) {
     };
 
     match SimpleLogger::init(level, simplelog::Config::default()) {
-        Ok(_) => {}
-        Err(err) => {
-            // todo - hand off to delegate error handler
-            panic!("{:?}", err);
-        }
+        Ok(_) => Ok(()),
+        Err(err) => Err(GlassError::UncaughtPanic {
+            error_message: err.to_string(),
+        }),
     }
 }
