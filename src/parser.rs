@@ -8,75 +8,123 @@ use logos::Span;
 pub struct Parser {
     tokens: VecDeque<(Token, Span)>,
     source: String,
-    last_token: Option<(Token, Span)>,
     filename: String,
 }
 
 type ParseResult = Result<Node, GlassError>;
+
+macro_rules! token_matches {
+    ($token:expr, $($pattern:pat_param)|+) => {
+        match $token {
+            $($pattern)|+ => true,
+            _ => false,
+        }
+    };
+}
 
 impl Parser {
     pub fn new(tokens: VecDeque<(Token, Span)>, source: String, filename: String) -> Self {
         Self {
             tokens,
             source,
-            last_token: None,
             filename,
         }
     }
 
     pub fn parse(&mut self) -> ParseResult {
-        loop {
-            println!("{:?}", self.parse_atom()?);
-        }
+        self.parse_expression()
     }
 
     fn parse_expression(&mut self) -> ParseResult {
-        todo!("parse_expression")
+        return self.parse_equality();
     }
 
     fn parse_math_expression(
         &mut self,
-        a: &mut dyn FnMut() -> ParseResult,
+        mut a: Box<dyn FnMut(&mut Self) -> ParseResult>,
+        mut b: Option<Box<dyn FnMut(&mut Self) -> ParseResult>>,
         types: Vec<Token>,
     ) -> ParseResult {
-        let mut left = a()?;
+        let mut left = a(self)?;
 
-        while let Ok(Some((token, _))) = self.next() {
+        while let Ok(Some((token, _))) = self.peek() {
             if types.contains(&token) {
-                let right = a()?;
+                self.next()?;
+
+                let right = match b {
+                    Some(ref mut b) => b(self)?,
+                    None => a(self)?,
+                };
 
                 left = Node::BinaryOp {
                     left: Box::new(left),
                     op: token,
                     right: Box::new(right),
                 };
+
+                continue;
             }
+
+            break;
         }
 
         Ok(left)
     }
 
-    fn parse_arithmetic(&mut self) -> ParseResult {
-        self.parse_math_expression(&mut || self.parse_term(), vec![Token::Plus, Token::Minus])
+    fn parse_equality(&mut self) -> ParseResult {
+        self.parse_math_expression(
+            Box::new(Self::parse_comparison),
+            None,
+            vec![Token::EqualEqual, Token::ExclamationEqual],
+        )
+    }
+
+    fn parse_comparison(&mut self) -> ParseResult {
+        self.parse_math_expression(
+            Box::new(Self::parse_term),
+            None,
+            vec![
+                Token::LessThan,
+                Token::GreaterThan,
+                Token::LessThanEqual,
+                Token::GreaterThanEqual,
+            ],
+        )
     }
 
     fn parse_term(&mut self) -> ParseResult {
         self.parse_math_expression(
-            &mut || self.parse_factor(),
-            vec![Token::Star, Token::Slash, Token::Percent],
+            Box::new(Self::parse_factor),
+            None,
+            vec![Token::Plus, Token::Minus],
         )
     }
 
     fn parse_factor(&mut self) -> ParseResult {
-        todo!("parse_factor")
+        self.parse_math_expression(
+            Box::new(Self::parse_unary),
+            None,
+            vec![Token::Star, Token::Slash, Token::Percent],
+        )
     }
 
-    fn parse_power(&mut self) -> ParseResult {
-        todo!("parse_power")
-    }
+    fn parse_unary(&mut self) -> ParseResult {
+        if let Ok(Some((token, _))) = self.peek() {
+            if token_matches!(token, Token::Minus | Token::Plus | Token::Not) {
+                self.next()?;
 
-    fn parse_call(&mut self) -> ParseResult {
-        todo!("parse_call")
+                return Ok(Node::UnaryOp {
+                    op: token,
+                    expr: Box::new(self.parse_unary()?),
+                });
+            }
+
+            return self.parse_atom();
+        }
+
+        Err(GlassError::UnexpectedEndOfInput {
+            filename: self.filename.clone(),
+        })
     }
 
     fn parse_atom(&mut self) -> ParseResult {
@@ -91,7 +139,10 @@ impl Parser {
                 self.expect(Token::RParen)?;
                 Ok(node)
             }
-            _ => todo!("unimplemented token {:?}", token),
+            Some((token, _)) => todo!("unimplemented token {:?}", token),
+            None => Err(GlassError::UnexpectedEndOfInput {
+                filename: self.filename.clone(),
+            }),
         }
     }
 
@@ -111,47 +162,50 @@ impl Parser {
             }
         } else {
             Err(GlassError::UnexpectedEndOfInput {
-                src: self.source.clone(),
-                span: match &self.last_token {
-                    Some((_, span)) => span.clone(),
-                    None => {
-                        return Err(GlassError::EmptyTokenStream {
-                            src: self.source.clone(),
-                            filename: self.filename.clone(), // todo: don't clone
-                        });
-                    }
-                },
+                filename: self.filename.clone(),
             })
         }
     }
 
     fn next(&mut self) -> Result<Option<(Token, Span)>, GlassError> {
-        match self.tokens.pop_front() {
-            Some((token, span)) => {
-                match token {
-                    Token::Error => {
-                        return Err(GlassError::UnknownToken {
-                            src: self.source.clone(), // todo: don't clone
-                            span,
-                        });
-                    }
-                    Token::UnclosedString => {
-                        return Err(GlassError::UnclosedString {
-                            src: self.source.clone(), // todo: don't clone
-                            span,
-                        });
-                    }
-                    Token::InvalidEscapeSequence => {
-                        return Err(GlassError::UnknownEscapeSequence {
-                            escape_sequence: self.source[span.start..span.end].to_string(),
-                            src: self.source.clone(), // todo: don't clone
-                            span,
-                        });
-                    }
-                    _ => Ok(Some((token, span))),
-                }
+        Ok(if let Some((token, span)) = self.tokens.pop_front() {
+            Some(self.check_error(token, span)?)
+        } else {
+            None
+        })
+    }
+
+    fn peek(&mut self) -> Result<Option<(Token, Span)>, GlassError> {
+        // todo: don't clone (more important than the other clones)
+        Ok(if let Some((token, span)) = self.tokens.front().cloned() {
+            Some(self.check_error(token, span)?)
+        } else {
+            None
+        })
+    }
+
+    fn check_error(&mut self, token: Token, span: Span) -> Result<(Token, Span), GlassError> {
+        match token {
+            Token::Error => {
+                return Err(GlassError::UnknownToken {
+                    src: self.source.clone(), // todo: don't clone
+                    span,
+                });
             }
-            None => Ok(None),
+            Token::UnclosedString => {
+                return Err(GlassError::UnclosedString {
+                    src: self.source.clone(), // todo: don't clone
+                    span,
+                });
+            }
+            Token::InvalidEscapeSequence => {
+                return Err(GlassError::UnknownEscapeSequence {
+                    escape_sequence: self.source[span.start..span.end].to_string(),
+                    src: self.source.clone(), // todo: don't clone
+                    span,
+                });
+            }
+            _ => Ok((token, span)),
         }
     }
 }
