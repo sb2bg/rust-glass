@@ -145,7 +145,11 @@ impl Parser {
                 self.expect(Token::RParen)?;
                 Ok(node)
             }
-            Some((token, _)) => todo!("unimplemented token {:?}", token),
+            Some((_, span)) => Err(GlassError::UnexpectedToken {
+                expected: None,
+                src: Rc::clone(&self.src),
+                span,
+            }),
             None => Err(GlassError::UnexpectedEndOfInput {
                 filename: Rc::clone(&self.filename),
             }),
@@ -160,8 +164,7 @@ impl Parser {
                 Ok(())
             } else {
                 Err(GlassError::UnexpectedToken {
-                    expected: token,
-                    actual: next_token,
+                    expected: Some(token),
                     src: Rc::clone(&self.src),
                     span,
                 })

@@ -19,7 +19,7 @@ fn get_line<'a>(source: &'a str, span: &'a Span) -> &'a str {
 #[derive(Error, Debug)]
 pub enum GlassError {
     #[error("Unknown error '{error_message}'. Please report this bug with the following information: Glass Version = '{}', Git Revision = '{}'", env!("CARGO_PKG_VERSION"), git_version!(fallback = "<unknown>"))]
-    UncaughtPanic { error_message: String },
+    UnknownError { error_message: String },
 
     #[error(
         "Unknown token '{}' encountered at {}",
@@ -42,14 +42,17 @@ pub enum GlassError {
         span: Span,
     },
 
+    // this is a bit of a hack, but it's the best way I can think of to do this
     #[error(
-        "Unexpected token '{}' at {}",
-        get_token(src, span),
-        get_line(src, span)
+        "{}",
+        if let Some(expected) = expected {
+            format!("Expected '{}' but found '{}' instead at {}", expected.get_rep(), get_token(src, span), get_line(src, span))
+        } else {
+            format!("Unexpected token '{}' at {}", get_token(src, span), get_line(src, span))
+        }
     )]
     UnexpectedToken {
-        expected: Token,
-        actual: Token,
+        expected: Option<Token>,
         src: Rc<str>,
         span: Span,
     },
