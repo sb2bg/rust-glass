@@ -32,8 +32,7 @@ pub enum GlassError {
     UnclosedString { src: Rc<str>, span: Span },
 
     #[error(
-        "Unknown escape sequence '{}' at {} {}",
-        escape_sequence,
+        "Unknown escape sequence '{escape_sequence}' at {} {}",
         get_token(src, span),
         get_line(src, span)
     )]
@@ -55,17 +54,20 @@ pub enum GlassError {
         span: Span,
     },
 
-    #[error("Unexpected end of input in source file '{}'", filename)]
+    #[error("Unexpected end of input in source file '{filename}'")]
     UnexpectedEndOfInput { filename: Rc<str> },
 
-    #[error("Cannot use operand '{}' on type '{}' and '{}'", operation, lhs, rhs)]
+    #[error("Cannot use operation '{operation}' on type '{left}' and '{right}'")]
     InvalidOperation {
         operation: String,
-        lhs: String,
-        rhs: String,
+        left: String,
+        right: String,
     },
 
+    #[error("Unary operator '{operation}' cannot be applied to type '{operand}'")]
+    InvalidUnaryOperation { operation: String, operand: String },
+
     // this error is to only be used in development as a placeholder for errors that haven't been implemented yet
-    #[error("{}", message)]
+    #[error("{message}")]
     PlaceholderError { message: String },
 }
