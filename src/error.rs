@@ -2,13 +2,14 @@ use crate::Token;
 use line_span::find_line_range;
 use logos::Span;
 use std::fmt::{Debug, Display};
+use std::rc::Rc;
 use thiserror::Error;
 
-fn get_token<'a>(source: &'a String, span: &'a Span) -> &'a str {
+fn get_token<'a>(source: &'a str, span: &'a Span) -> &'a str {
     source[span.start..span.end].trim()
 }
 
-fn get_line<'a>(source: &'a String, span: &'a Span) -> &'a str {
+fn get_line<'a>(source: &'a str, span: &'a Span) -> &'a str {
     &source[find_line_range(source, span.start)].trim()
 }
 
@@ -26,10 +27,10 @@ pub enum GlassError {
         get_token(src, span),
         get_line(src, span)
     )]
-    UnknownToken { src: String, span: Span },
+    UnknownToken { src: Rc<str>, span: Span },
 
     #[error("Unclosed string literal starting at {}", get_line(src, span))]
-    UnclosedString { src: String, span: Span },
+    UnclosedString { src: Rc<str>, span: Span },
 
     #[error(
         "Unknown escape sequence '{}' at {} {}",
@@ -39,7 +40,7 @@ pub enum GlassError {
     )]
     UnknownEscapeSequence {
         escape_sequence: String,
-        src: String,
+        src: Rc<str>,
         span: Span,
     },
 
@@ -51,13 +52,13 @@ pub enum GlassError {
     UnexpectedToken {
         expected: Token,
         actual: Token,
-        src: String,
+        src: Rc<str>,
         span: Span,
     },
 
     #[error("Unexpected end of input in source file '{}'", filename)]
-    UnexpectedEndOfInput { filename: String },
+    UnexpectedEndOfInput { filename: Rc<str> },
 
     #[error("No parseable tokens found in source file '{}'", filename)]
-    EmptyTokenStream { src: String, filename: String },
+    EmptyTokenStream { filename: Rc<str> },
 }
