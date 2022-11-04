@@ -34,7 +34,7 @@ fn main() {
     panic::set_hook(Box::new(|err| {
         eprintln!(
             "{}",
-            GlassError::UncaughtPanic {
+            GlassError::UnknownError {
                 error_message: err.to_string(),
             }
         );
@@ -56,7 +56,7 @@ fn main() {
 
 fn try_main() -> Result<(), GlassError> {
     let args = Args::parse();
-    setup_logger(args.debug);
+    setup_logger(args.debug)?;
 
     match args.file {
         Some(file) => run_script(file),
@@ -104,7 +104,7 @@ fn setup_logger(debug: bool) -> Result<(), GlassError> {
 
     match SimpleLogger::init(level, simplelog::Config::default()) {
         Ok(_) => Ok(()),
-        Err(err) => Err(GlassError::UncaughtPanic {
+        Err(err) => Err(GlassError::UnknownError {
             error_message: err.to_string(),
         }),
     }
