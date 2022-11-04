@@ -1,8 +1,10 @@
+use crate::error::GlassError;
+use crate::interpreter::InterpreterResult;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::ops::{Add, Div, Mul, Neg, Not, Sub};
+use std::ops::{Div, Mul, Neg, Not, Sub};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value {
     Num(f64),
     Str(String),
@@ -15,129 +17,187 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn pow(self, other: Value) -> Self {
+    fn get_type(&self) -> String {
+        match self {
+            Value::Num(_) => "number",
+            Value::Str(_) => "string",
+            Value::Bool(_) => "boolean",
+            Value::List(_) => "list",
+            Value::Dict(_) => "dictionary",
+            Value::Void => "void",
+        }
+        .into()
+    }
+
+    pub fn pow(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => Value::Num(a.powf(b)),
-            _ => todo!("Error: Invalid operands for exponentiation"),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a.powf(b))),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "**".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
 
-    pub fn and(self, other: Value) -> Self {
+    pub fn and(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Bool(a), Value::Bool(b)) => Value::Bool(a && b),
-            _ => todo!("Error: Invalid operands for logical AND"),
+            (Value::Bool(a), Value::Bool(b)) => Ok(Value::Bool(a && b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "and".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
 
-    pub fn or(self, other: Value) -> Self {
+    pub fn or(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Bool(a), Value::Bool(b)) => Value::Bool(a || b),
-            _ => todo!("Error: Invalid operands for logical OR"),
+            (Value::Bool(a), Value::Bool(b)) => Ok(Value::Bool(a || b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "or".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl Add for Value {
-    type Output = Value;
-
-    fn add(self, other: Value) -> Value {
+    pub fn add(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => Value::Num(a + b),
-            (Value::Str(a), Value::Str(b)) => Value::Str(a + &b),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a + b)),
+            (Value::Str(a), Value::Str(b)) => Ok(Value::Str(a + &b)),
             (Value::List(mut a), Value::List(b)) => {
                 a.extend(b);
-                Value::List(a)
+                Ok(Value::List(a))
             }
             (Value::Dict(mut a), Value::Dict(b)) => {
                 a.extend(b);
-                Value::Dict(a)
+                Ok(Value::Dict(a))
             }
-            _ => todo!("not done adding all addable types"),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "+".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl Sub for Value {
-    type Output = Value;
-
-    fn sub(self, other: Value) -> Value {
+    pub fn sub(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => Value::Num(a - b),
-            _ => todo!("not done subtracting all subtractable types"),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a - b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "-".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl Mul for Value {
-    type Output = Value;
-
-    fn mul(self, other: Value) -> Value {
+    pub fn mul(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => Value::Num(a * b),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a * b)),
             (Value::Str(a), Value::Num(b)) | (Value::Num(b), Value::Str(a)) => {
-                Value::Str(a.repeat(b as usize))
+                Ok(Value::Str(a.repeat(b as usize)))
             }
-            _ => todo!("not done multiplying all multiplyable types"),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "*".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl Div for Value {
-    type Output = Value;
-
-    fn div(self, other: Value) -> Value {
+    pub fn div(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => Value::Num(a / b),
-            _ => todo!("not done dividing all dividable types"),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a / b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "/".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl PartialEq<Self> for Value {
-    fn eq(&self, other: &Self) -> bool {
+    pub fn rem(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => a == b,
-            (Value::Str(a), Value::Str(b)) => a == b,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::List(a), Value::List(b)) => a == b,
-            (Value::Dict(a), Value::Dict(b)) => a == b,
-            (Value::Void, Value::Void) => true,
-            _ => false,
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Num(a % b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "%".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
+    pub fn eq(self, other: Value) -> InterpreterResult {
+        Ok(Value::Bool(self == other))
+    }
+
+    pub fn ne(self, other: Value) -> InterpreterResult {
+        Ok(Value::Bool(self != other))
+    }
+
+    pub fn lt(self, other: Value) -> InterpreterResult {
         match (self, other) {
-            (Value::Num(a), Value::Num(b)) => a.partial_cmp(b),
-            (a, b) => todo!(
-                "Error: Invalid operands for comparison: {:?} and {:?}",
-                a,
-                b
-            ),
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Bool(a < b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "<".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
         }
     }
-}
 
-impl Not for Value {
-    type Output = Value;
+    pub fn le(self, other: Value) -> InterpreterResult {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Bool(a <= b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: "<=".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
+        }
+    }
 
-    fn not(self) -> Value {
+    pub fn gt(self, other: Value) -> InterpreterResult {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Bool(a > b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: ">".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
+        }
+    }
+
+    pub fn ge(self, other: Value) -> InterpreterResult {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Ok(Value::Bool(a >= b)),
+            (a, b) => Err(GlassError::InvalidOperation {
+                operation: ">=".into(),
+                left: a.get_type(),
+                right: b.get_type(),
+            }),
+        }
+    }
+
+    pub fn not(self) -> InterpreterResult {
         match self {
-            Value::Bool(b) => Value::Bool(!b),
-            _ => todo!("not done adding all notable types"),
+            Value::Bool(a) => Ok(Value::Bool(!a)),
+            a => Err(GlassError::InvalidUnaryOperation {
+                operation: "!".into(),
+                operand: a.get_type(),
+            }),
         }
     }
-}
 
-impl Neg for Value {
-    type Output = Value;
-
-    fn neg(self) -> Value {
+    pub fn neg(self) -> InterpreterResult {
         match self {
-            Value::Num(n) => Value::Num(-n),
-            _ => todo!("not done adding all negable types"),
+            Value::Num(a) => Ok(Value::Num(-a)),
+            a => Err(GlassError::InvalidUnaryOperation {
+                operation: "-".into(),
+                operand: a.get_type(),
+            }),
         }
     }
 }

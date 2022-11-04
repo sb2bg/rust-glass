@@ -25,20 +25,20 @@ impl Interpreter {
         right: &Box<Node>,
     ) -> InterpreterResult {
         match op {
-            Token::Plus => Ok(left.visit(self)? + right.visit(self)?),
-            Token::Minus => Ok(left.visit(self)? - right.visit(self)?),
-            Token::Star => Ok(left.visit(self)? * right.visit(self)?),
-            Token::Slash => Ok(left.visit(self)? / right.visit(self)?),
-            // Token::Percent => println!("{}", left.visit(self) % right.visit(self)),
-            Token::StarStar => Ok(left.visit(self)?.pow(right.visit(self)?)),
-            Token::EqualEqual => Ok(Value::Bool(left.visit(self)? == right.visit(self)?)),
-            Token::ExclamationEqual => Ok(Value::Bool(left.visit(self)? != right.visit(self)?)),
-            Token::LessThan => Ok(Value::Bool(left.visit(self)? < right.visit(self)?)),
-            Token::GreaterThan => Ok(Value::Bool(left.visit(self)? > right.visit(self)?)),
-            Token::LessThanEqual => Ok(Value::Bool(left.visit(self)? <= right.visit(self)?)),
-            Token::GreaterThanEqual => Ok(Value::Bool(left.visit(self)? >= right.visit(self)?)),
-            Token::And => Ok(left.visit(self)?.and(right.visit(self)?)),
-            Token::Or => Ok(left.visit(self)?.or(right.visit(self)?)),
+            Token::Plus => left.visit(self)?.add(right.visit(self)?),
+            Token::Minus => left.visit(self)?.sub(right.visit(self)?),
+            Token::Star => left.visit(self)?.mul(right.visit(self)?),
+            Token::Slash => left.visit(self)?.div(right.visit(self)?),
+            Token::Percent => left.visit(self)?.rem(right.visit(self)?),
+            Token::StarStar => left.visit(self)?.pow(right.visit(self)?),
+            Token::EqualEqual => left.visit(self)?.eq(right.visit(self)?),
+            Token::ExclamationEqual => left.visit(self)?.ne(right.visit(self)?),
+            Token::LessThan => left.visit(self)?.lt(right.visit(self)?),
+            Token::GreaterThan => left.visit(self)?.gt(right.visit(self)?),
+            Token::LessThanEqual => left.visit(self)?.le(right.visit(self)?),
+            Token::GreaterThanEqual => left.visit(self)?.ge(right.visit(self)?),
+            Token::And => left.visit(self)?.and(right.visit(self)?),
+            Token::Or => left.visit(self)?.or(right.visit(self)?),
             _ => Err(GlassError::PlaceholderError {
                 message: "unimplemented bin op".to_string(),
             }),
@@ -47,8 +47,8 @@ impl Interpreter {
 
     pub fn visit_unary_op_node(&self, op: &Token, right: &Box<Node>) -> InterpreterResult {
         match op {
-            Token::Minus => Ok(-right.visit(self)?),
-            Token::Not => Ok(!right.visit(self)?),
+            Token::Minus => right.visit(self)?.neg(),
+            Token::Not => right.visit(self)?.not(),
             Token::Plus => right.visit(self),
             _ => Err(GlassError::PlaceholderError {
                 message: "Invalid unary operator".to_string(),
