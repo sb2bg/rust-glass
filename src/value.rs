@@ -1,5 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::ops::Add;
+use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 #[derive(Debug)]
 pub enum Value {
@@ -11,6 +12,15 @@ pub enum Value {
     Dict(HashMap<String, Value>),
     // Struct(Struct), // todo
     Void,
+}
+
+impl Value {
+    pub fn pow(self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Value::Num(a.powf(b)),
+            _ => todo!("Error: Invalid operands for exponentiation"),
+        }
+    }
 }
 
 impl Add for Value {
@@ -30,6 +40,92 @@ impl Add for Value {
                 Value::Dict(a)
             }
             _ => todo!("not done adding all addable types"),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Value;
+
+    fn sub(self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Value::Num(a - b),
+            _ => todo!("not done subtracting all subtractable types"),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Value;
+
+    fn mul(self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Value::Num(a * b),
+            (Value::Str(a), Value::Num(b)) | (Value::Num(b), Value::Str(a)) => {
+                Value::Str(a.repeat(b as usize))
+            }
+            _ => todo!("not done multiplying all multiplyable types"),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Value;
+
+    fn div(self, other: Value) -> Value {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => Value::Num(a / b),
+            _ => todo!("not done dividing all dividable types"),
+        }
+    }
+}
+
+impl PartialEq<Self> for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => a == b,
+            (Value::Str(a), Value::Str(b)) => a == b,
+            (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::List(a), Value::List(b)) => a == b,
+            (Value::Dict(a), Value::Dict(b)) => a == b,
+            (Value::Void, Value::Void) => true,
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
+        match (self, other) {
+            (Value::Num(a), Value::Num(b)) => a.partial_cmp(b),
+            (Value::Str(a), Value::Str(b)) => a.partial_cmp(b),
+            (Value::Bool(a), Value::Bool(b)) => a.partial_cmp(b),
+            (Value::List(a), Value::List(b)) => a.partial_cmp(b),
+            // (Value::Dict(a), Value::Dict(b)) => a.partial_cmp(b),
+            (Value::Void, Value::Void) => Some(Ordering::Equal),
+            _ => todo!("not done comparing all comparable types"),
+        }
+    }
+}
+
+impl Not for Value {
+    type Output = Value;
+
+    fn not(self) -> Value {
+        match self {
+            Value::Bool(b) => Value::Bool(!b),
+            _ => todo!("not done adding all notable types"),
+        }
+    }
+}
+
+impl Neg for Value {
+    type Output = Value;
+
+    fn neg(self) -> Value {
+        match self {
+            Value::Num(n) => Value::Num(-n),
+            _ => todo!("not done adding all negable types"),
         }
     }
 }
