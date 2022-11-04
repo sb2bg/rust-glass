@@ -21,13 +21,26 @@ impl Value {
             _ => todo!("Error: Invalid operands for exponentiation"),
         }
     }
+
+    pub fn and(self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Bool(a), Value::Bool(b)) => Value::Bool(a && b),
+            _ => todo!("Error: Invalid operands for logical AND"),
+        }
+    }
+
+    pub fn or(self, other: Value) -> Self {
+        match (self, other) {
+            (Value::Bool(a), Value::Bool(b)) => Value::Bool(a || b),
+            _ => todo!("Error: Invalid operands for logical OR"),
+        }
+    }
 }
 
 impl Add for Value {
     type Output = Value;
 
     fn add(self, other: Value) -> Value {
-        println!("add {:?} {:?}", self, other);
         match (self, other) {
             (Value::Num(a), Value::Num(b)) => Value::Num(a + b),
             (Value::Str(a), Value::Str(b)) => Value::Str(a + &b),
@@ -98,12 +111,11 @@ impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
         match (self, other) {
             (Value::Num(a), Value::Num(b)) => a.partial_cmp(b),
-            (Value::Str(a), Value::Str(b)) => a.partial_cmp(b),
-            (Value::Bool(a), Value::Bool(b)) => a.partial_cmp(b),
-            (Value::List(a), Value::List(b)) => a.partial_cmp(b),
-            // (Value::Dict(a), Value::Dict(b)) => a.partial_cmp(b),
-            (Value::Void, Value::Void) => Some(Ordering::Equal),
-            _ => todo!("not done comparing all comparable types"),
+            (a, b) => todo!(
+                "Error: Invalid operands for comparison: {:?} and {:?}",
+                a,
+                b
+            ),
         }
     }
 }
