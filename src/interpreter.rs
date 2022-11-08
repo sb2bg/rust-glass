@@ -1,17 +1,25 @@
+use crate::context::Context;
 use crate::error::GlassError;
 use crate::lexer::Token;
 use crate::node::Node;
 use crate::value::Value;
+use std::rc::Rc;
 
 pub struct Interpreter {
-    context: (), // todo: implement context
+    src: Rc<str>,
+    filename: Rc<str>,
+    context: Context, // todo: implement context
 }
 
 pub type InterpreterResult = Result<Value, GlassError>;
 
 impl Interpreter {
-    pub fn new() -> Self {
-        Self { context: () }
+    pub fn new(src: Rc<str>, filename: Rc<str>) -> Self {
+        Self {
+            src,
+            filename,
+            context: Context::new(),
+        }
     }
 
     pub fn visit_node(&self, node: Node) -> InterpreterResult {
@@ -62,5 +70,13 @@ impl Interpreter {
         }
 
         Ok(Value::Void)
+    }
+
+    pub fn new_child_context(&self, name: &str) -> Self {
+        Self {
+            src: Rc::clone(&self.src),
+            filename: Rc::clone(&self.filename),
+            context: self.context.new_child(name),
+        }
     }
 }
