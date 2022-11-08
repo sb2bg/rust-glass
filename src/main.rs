@@ -1,3 +1,4 @@
+mod context;
 mod error;
 mod interpreter;
 mod lexer;
@@ -14,8 +15,9 @@ use log::{debug, log_enabled, Level, LevelFilter};
 use logos::{Logos, Span};
 use simplelog::SimpleLogger;
 use std::collections::VecDeque;
-use std::panic;
 use std::path::PathBuf;
+use std::rc::Rc;
+use std::{fs, panic};
 
 #[derive(ClapParser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -42,15 +44,6 @@ fn main() {
 
     if let Err(err) = try_main() {
         eprintln!("Fatal exception during execution -> {}", err);
-        /*
-
-            Fatal exception during runtime -> "Unknown character '$' encountered at
-
-                el oh el $ lol
-                         ^
-            [test.glass(Ln:6 Col:10)]"
-
-        */
     }
 }
 
@@ -67,10 +60,21 @@ fn try_main() -> Result<(), GlassError> {
 }
 
 fn run_script(file: PathBuf) -> Result<(), GlassError> {
-    let source = std::fs::read_to_string(&file).unwrap();
-    debug!("Read {} bytes from '{}'", &source.len(), &file.display());
+    // todo: stop using Rc!!!
+    let filename: Rc<str> = Rc::from(file.to_string_lossy().to_string());
 
-    let tokens: VecDeque<(Token, Span)> = Token::lexer(&source).spanned().collect();
+    let src: Rc<str> = Rc::from(match fs::read_to_string(&file) {
+        Ok(src) => src,
+        Err(_) => {
+            return Err(GlassError::FileNotFound {
+                filename: Rc::clone(&filename),
+            })
+        }
+    });
+
+    debug!("Read {} bytes from '{}'", &src.len(), &file.display());
+
+    let tokens: VecDeque<(Token, Span)> = Token::lexer(&src).spanned().collect();
 
     if log_enabled!(Level::Debug) {
         for (token, span) in &tokens {
@@ -78,14 +82,14 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
         }
     }
 
-    let mut parser = Parser::new(tokens, source.into(), file.display().to_string().into());
+    let mut parser = Parser::new(tokens, Rc::clone(&src), Rc::clone(&filename));
     let ast = parser.parse()?;
 
     if log_enabled!(Level::Debug) {
         debug!("AST > {:#?}", ast);
     }
 
-    let interpreter = Interpreter::new();
+    let interpreter = Interpreter::new(Rc::clone(&src), Rc::clone(&filename));
     let result = interpreter.visit_node(ast)?;
 
     if log_enabled!(Level::Debug) {
