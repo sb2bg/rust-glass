@@ -33,7 +33,7 @@ pub enum Node {
     },
     FunctionDefinition {
         name: String,
-        args: Vec<String>,
+        signature: Vec<String>,
         body: Box<Node>,
     },
     Return {
@@ -63,7 +63,7 @@ pub enum Node {
 impl Node {
     pub fn visit(&self, interpreter: &Interpreter) -> InterpreterResult {
         match self {
-            Node::String { value } => Ok(Value::Str(value.clone())), // todo: don't clone
+            Node::String { value } => Ok(Value::Str(value.to_owned())), // todo: don't clone
             Node::Number { value } => Ok(Value::Num(*value)),
             Node::Identifier { .. } => todo!("identifier"),
             Node::BinaryOp { op, left, right } => interpreter.visit_bin_op_node(op, left, right),
