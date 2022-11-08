@@ -33,7 +33,18 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> ParseResult {
-        self.parse_expression()
+        let result = self.parse_expression()?;
+
+        if let Some((_, span)) = self.next()? {
+            Err(GlassError::UnexpectedToken {
+                expected: None,
+                src: Rc::clone(&self.src),
+                filename: Rc::clone(&self.filename),
+                span,
+            })
+        } else {
+            Ok(result)
+        }
     }
 
     fn parse_expression(&mut self) -> ParseResult {
@@ -48,7 +59,7 @@ impl Parser {
     ) -> ParseResult {
         let mut left = a(self)?;
 
-        while let Ok(Some((token, _))) = self.peek() {
+        while let Some((token, _)) = self.peek()? {
             if types.contains(&token) {
                 self.next()?;
 
@@ -115,7 +126,7 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> ParseResult {
-        if let Ok(Some((token, _))) = self.peek() {
+        if let Some((token, _)) = self.peek()? {
             if token_matches!(token, Token::Minus | Token::Plus | Token::Not) {
                 self.next()?;
 
@@ -148,6 +159,7 @@ impl Parser {
             Some((_, span)) => Err(GlassError::UnexpectedToken {
                 expected: None,
                 src: Rc::clone(&self.src),
+                filename: Rc::clone(&self.filename),
                 span,
             }),
             None => Err(GlassError::UnexpectedEndOfInput {
@@ -156,16 +168,17 @@ impl Parser {
         }
     }
 
-    fn expect(&mut self, token: Token) -> Result<(), GlassError> {
+    fn expect(&mut self, token: Token) -> Result<Token, GlassError> {
         let next = self.next()?;
 
         if let Some((next_token, span)) = next {
             if next_token == token {
-                Ok(())
+                return Ok(next_token);
             } else {
                 Err(GlassError::UnexpectedToken {
                     expected: Some(token),
                     src: Rc::clone(&self.src),
+                    filename: Rc::clone(&self.filename),
                     span,
                 })
             }
@@ -186,6 +199,7 @@ impl Parser {
 
     fn peek(&mut self) -> Result<Option<(Token, Span)>, GlassError> {
         // todo: don't clone (more important than the other clones)
+        // todo: maybe instead of collecting into a VecDeque, maybe use the iterator directly
         Ok(if let Some((token, span)) = self.tokens.front().cloned() {
             Some(self.check_error(token, span)?)
         } else {
@@ -193,28 +207,29 @@ impl Parser {
         })
     }
 
+    // add code to prevent checking the same token twice
     fn check_error(&mut self, token: Token, span: Span) -> Result<(Token, Span), GlassError> {
-        match token {
-            Token::Error => {
-                return Err(GlassError::UnknownToken {
+        return match token {
+            Token::Error => Err(GlassError::UnknownToken {
+                src: Rc::clone(&self.src),
+                filename: Rc::clone(&self.filename),
+                span,
+            }),
+            Token::UnclosedString => Err(GlassError::UnclosedString {
+                src: Rc::clone(&self.src),
+                filename: Rc::clone(&self.filename),
+                span,
+            }),
+            Token::UnverifiedString(result) => match result {
+                Ok(str) => Ok((Token::String(str), span)),
+                Err(err) => Err(GlassError::UnknownEscapeSequence {
+                    escape_sequence: err,
                     src: Rc::clone(&self.src),
+                    filename: Rc::clone(&self.filename),
                     span,
-                });
-            }
-            Token::UnclosedString => {
-                return Err(GlassError::UnclosedString {
-                    src: Rc::clone(&self.src),
-                    span,
-                });
-            }
-            Token::InvalidEscapeSequence => {
-                return Err(GlassError::UnknownEscapeSequence {
-                    escape_sequence: self.src[span.start..span.end].to_string(),
-                    src: Rc::clone(&self.src),
-                    span,
-                });
-            }
+                }),
+            },
             _ => Ok((token, span)),
-        }
+        };
     }
 }

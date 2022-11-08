@@ -1,8 +1,11 @@
 use logos::{Lexer, Logos};
 use snailquote::unescape;
 
-fn lex_string(lex: &mut Lexer<Token>) -> Option<String> {
-    unescape(lex.slice()).ok()
+fn lex_string(lex: &mut Lexer<Token>) -> Result<String, String> {
+    match unescape(lex.slice()) {
+        Ok(s) => Ok(s),
+        Err(e) => Err(e.to_string().as_str()[15..17].into()), // todo: make this better
+    }
 }
 
 fn lex_number_with_base(lex: &mut Lexer<Token>, radix: u32) -> Option<f64> {
@@ -23,6 +26,8 @@ pub enum Token {
     Identifier(String),
 
     #[regex(r#""(\\.|[^"])*""#, lex_string)] // string
+    UnverifiedString(Result<String, String>),
+
     String(String),
 
     #[token("+")]
@@ -178,11 +183,8 @@ pub enum Token {
     #[regex(r#""(\\.|[^"])*"#)] // unclosed string
     UnclosedString,
 
-    #[regex(r#""(\\.|[^"])*\\[^"]*""#)] // invalid escape sequence
-    InvalidEscapeSequence,
-
     #[error]
-    #[regex(r"[ \t\n\r]+|//[^\n]*", logos::skip)] // skip whitespace and '//' comments
+    #[regex(r"[ \t\n\r]+|//[^\n]*", logos::skip)]
     Error,
 }
 
@@ -244,7 +246,7 @@ impl Token {
             Token::DotDotEqual => "..=",
             Token::Hash => "#",
             Token::UnclosedString => "unclosed string",
-            Token::InvalidEscapeSequence => "invalid escape sequence",
+            Token::UnverifiedString(_) => "unverified string",
             Token::Error => "error",
         }
     }
