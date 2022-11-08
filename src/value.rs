@@ -68,6 +68,8 @@ impl Value {
                 a.extend(b);
                 Ok(Value::List(a))
             }
+            (Value::Str(a), Value::Num(b)) => Ok(Value::Str(a + &b.to_string())),
+            (Value::Num(a), Value::Str(b)) => Ok(Value::Str(a.to_string() + &b)),
             (Value::Dict(mut a), Value::Dict(b)) => {
                 a.extend(b);
                 Ok(Value::Dict(a))
