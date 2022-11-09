@@ -85,16 +85,12 @@ fn run_script(file: PathBuf) -> Result<(), GlassError> {
     let mut parser = Parser::new(tokens, Rc::clone(&src), Rc::clone(&filename));
     let ast = parser.parse()?;
 
-    if log_enabled!(Level::Debug) {
-        debug!("AST > {:#?}", ast);
-    }
+    debug!("AST > {:#?}", ast);
 
     let interpreter = Interpreter::new(Rc::clone(&src), Rc::clone(&filename));
     let result = interpreter.visit_node(ast)?;
 
-    if log_enabled!(Level::Debug) {
-        debug!("Result > {:?}", result);
-    }
+    debug!("Result > {:?}", result);
 
     Ok(())
 }
